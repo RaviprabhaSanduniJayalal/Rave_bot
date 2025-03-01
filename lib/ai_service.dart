@@ -1,20 +1,24 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-class AIService {
-  final String apiKey = 'YOUR_OPENAI_API_KEY';
-  final String endpoint = 'https://api.openai.com/v1/chat/completions';
+class AiService {
+  final String apiKey = dotenv.env['OPENAI_API_KEY'] ?? '';
 
-  Future<String> getResponse(String message) async {
+  Future<String> sendMessage(String message) async {
+    final url = Uri.parse('https://api.openai.com/v1/chat/completions');
+
     final response = await http.post(
-      Uri.parse(endpoint),
+      url,
       headers: {
         'Authorization': 'Bearer $apiKey',
         'Content-Type': 'application/json',
       },
       body: jsonEncode({
         "model": "gpt-3.5-turbo",
-        "messages": [{"role": "user", "content": message}]
+        "messages": [
+          {"role": "user", "content": message}
+        ],
       }),
     );
 
@@ -22,7 +26,7 @@ class AIService {
       final data = jsonDecode(response.body);
       return data['choices'][0]['message']['content'].trim();
     } else {
-      throw Exception('Failed to get AI response');
+      throw Exception('Failed to fetch AI response');
     }
   }
 }

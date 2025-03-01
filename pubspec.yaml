@@ -30,10 +30,11 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  speech_to_text: ^6.1.0 # For speech recognition
-  http: ^1.2.0          # To connect with AI API (like OpenAI)
-  flutter_tts: ^3.7.0   # For AI voice responses (Text-to-Speech)
+  speech_to_text: ^7.0.0 # For speech recognition
+  http: ^1.1.0         # To connect with AI API (like OpenAI)
+  flutter_tts: ^4.2.2   # For AI voice responses (Text-to-Speech)
   provider: ^6.0.5      # For state management
+  flutter_dotenv: ^5.1.0
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -56,11 +57,13 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+   assets:
+    - .env
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in
   # the material Icons class.
-  uses-material-design: true
+uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
   # assets:

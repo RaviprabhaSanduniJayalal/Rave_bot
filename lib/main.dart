@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 import 'package:flutter_tts/flutter_tts.dart';
+import 'ai_service.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
-void main() => runApp(MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await dotenv.load(fileName: ".env");
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
@@ -12,6 +18,7 @@ class MyApp extends StatefulWidget {
 class _MyAppState extends State<MyApp> {
   stt.SpeechToText _speech = stt.SpeechToText();
   FlutterTts _flutterTts = FlutterTts();
+  AIService _aiService = AIService();
 
   String _text = 'Press the button and start speaking';
   bool _isListening = false;
@@ -19,46 +26,43 @@ class _MyAppState extends State<MyApp> {
   @override
   void initState() {
     super.initState();
-    _flutterTts.setLanguage("en-US"); // Set the language for bot's speech
+    _flutterTts.setLanguage("en-US");
   }
 
-  // Start listening to the user's speech
   void _startListening() async {
     bool available = await _speech.initialize();
     if (available) {
-      setState(() {
-        _isListening = true;
-      });
-      _speech.listen(onResult: (result) {
-        setState(() {
-          _text = result.recognizedWords;
-        });
-        // Here, you can call a function to process the bot's response
-        _botRespond(_text);
+      setState(() => _isListening = true);
+      _speech.listen(onResult: (result) async {
+        String userInput = result.recognizedWords;
+        if (userInput.isNotEmpty) {
+          setState(() => _text = userInput);
+          await _getAIResponse(userInput);
+        }
       });
     }
   }
 
-  // Stop listening
   void _stopListening() {
-    setState(() {
-      _isListening = false;
-    });
+    setState(() => _isListening = false);
     _speech.stop();
   }
 
-  // Bot's voice response function
-  void _botRespond(String userInput) async {
-    // Example: Bot responds based on the input
-    String botResponse = "You said: $userInput";
-    await _flutterTts.speak(botResponse);  // Bot speaks the response
+  Future<void> _getAIResponse(String userInput) async {
+    try {
+      String aiResponse = await _aiService.getAIResponse(userInput);
+      await _flutterTts.speak(aiResponse); // Bot speaks AI's response
+      setState(() => _text = "Rave: $aiResponse");
+    } catch (e) {
+      setState(() => _text = "Error: ${e.toString()}");
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        appBar: AppBar(title: Text('Speech Recognition & TTS')),
+        appBar: AppBar(title: Text('Rave Bot')),
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,

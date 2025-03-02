@@ -16,29 +16,44 @@ class MyApp extends StatefulWidget {
 }
 
 class _MyAppState extends State<MyApp> {
-  stt.SpeechToText _speech = stt.SpeechToText();
-  FlutterTts _flutterTts = FlutterTts();
-  AIService _aiService = AIService();
+  late stt.SpeechToText _speech;
+  late FlutterTts _flutterTts;
+  late AIService _aiService;
 
-  String _text = 'Press the button and start speaking';
+  String _conversation = 'Rave: Hi! How can I help you practice English today?';
   bool _isListening = false;
 
   @override
   void initState() {
     super.initState();
+    _speech = stt.SpeechToText();
+    _flutterTts = FlutterTts();
+    _aiService = AIService();
+    _initializeTTS();
+  }
+
+  void _initializeTTS() {
     _flutterTts.setLanguage("en-US");
+    _flutterTts.setSpeechRate(0.5);
+    _flutterTts.setVolume(1.0);
+    _flutterTts.setPitch(1.0);
   }
 
   void _startListening() async {
     bool available = await _speech.initialize();
     if (available) {
       setState(() => _isListening = true);
-      _speech.listen(onResult: (result) async {
-        String userInput = result.recognizedWords;
-        if (userInput.isNotEmpty) {
-          setState(() => _text = userInput);
-          await _getAIResponse(userInput);
-        }
+      _speech.listen(
+        onResult: (result) async {
+          String userInput = result.recognizedWords;
+          if (userInput.isNotEmpty) {
+            await _processUserInput(userInput);
+          }
+        },
+      );
+    } else {
+      setState(() {
+        _conversation += '\nError: Speech recognition not available';
       });
     }
   }
@@ -48,13 +63,29 @@ class _MyAppState extends State<MyApp> {
     _speech.stop();
   }
 
-  Future<void> _getAIResponse(String userInput) async {
+  Future<void> _processUserInput(String userInput) async {
+    setState(() {
+      _conversation += '\nYou: $userInput';
+    });
+
     try {
-      String aiResponse = await _aiService.getAIResponse(userInput);
-      await _flutterTts.speak(aiResponse); // Bot speaks AI's response
-      setState(() => _text = "Rave: $aiResponse");
+      String aiResponse = await _aiService.getAIResponse(userInput);  // Pass only userInput
+      // Check if the response is relevant
+      if (aiResponse.toLowerCase().contains(userInput.toLowerCase())) {
+        setState(() {
+          _conversation += '\nRave: $aiResponse';
+        });
+        await _flutterTts.speak(aiResponse);
+      } else {
+        setState(() {
+          _conversation += '\nRave: I’m not sure how to respond to that.';
+        });
+        await _flutterTts.speak("I’m not sure how to respond to that.");
+      }
     } catch (e) {
-      setState(() => _text = "Error: ${e.toString()}");
+      setState(() {
+        _conversation += '\nError: ${e.toString()}';
+      });
     }
   }
 
@@ -63,15 +94,19 @@ class _MyAppState extends State<MyApp> {
     return MaterialApp(
       home: Scaffold(
         appBar: AppBar(title: Text('Rave Bot')),
-        body: Center(
+        body: Padding(
+          padding: const EdgeInsets.all(16.0),
           child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: <Widget>[
-              Text(_text, style: TextStyle(fontSize: 24)),
-              SizedBox(height: 20),
+            children: [
+              Expanded(
+                child: SingleChildScrollView(
+                  reverse: true,
+                  child: Text(_conversation, style: TextStyle(fontSize: 18)),
+                ),
+              ),
               ElevatedButton(
                 onPressed: _isListening ? _stopListening : _startListening,
-                child: Text(_isListening ? 'Stop Listening' : 'Start Listening'),
+                child: Text(_isListening ? 'Stop Listening' : 'Start Speaking'),
               ),
             ],
           ),
